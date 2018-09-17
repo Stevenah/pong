@@ -1,5 +1,5 @@
 #OBJS specifies which files to compile as part of the project
-OBJS = pong.cpp
+OBJS = ./src/pong.cpp
 
 #CC specifies which compiler we're using
 CC = g++
