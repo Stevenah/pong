@@ -2,12 +2,16 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <iostream>
+#include <stdlib.h>
 
 //Screen dimension constants
 const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGHT = 480;
 
 const int BORDER_PADDING = 15;
+
+const int PADDLE_SPEED = 4;
+const int BALL_SPEED = 2;
 
 int getDistance(SDL_Rect object_1, SDL_Rect object_2)
 {
@@ -42,6 +46,16 @@ class Paddle
             renderObject.h = 60;
             renderObject.x = x_pos;
             renderObject.y = y_pos;
+        }
+
+        void moveUp(int y_speed)
+        {
+            renderObject.y -= y_speed;
+        }
+
+        void moveDown(int y_speed)
+        {
+            renderObject.y += y_speed;
         }
 
         void setYPos(int y_pos)
@@ -85,12 +99,12 @@ class PlayerPaddle : public Paddle
 
                 if ( event.key.keysym.sym == m_up_button )
                 {
-                    renderObject.y -= m_movement_speed;
+                    moveUp(m_movement_speed);
                 }
 
                 if ( event.key.keysym.sym == m_down_button )
                 {
-                    renderObject.y += m_movement_speed;
+                    moveDown(m_movement_speed);
                 }
             }
         }
@@ -110,7 +124,15 @@ class AIPaddle : public Paddle
 
         void Move(int ballPosition)
         {
-            renderObject.y = ballPosition;
+            if ( renderObject.y < ballPosition )
+            {
+                moveDown( m_movement_speed );
+            }
+
+            if ( renderObject.y > ballPosition )
+            {
+                moveUp( m_movement_speed );
+            }
         }
 };
 
@@ -120,33 +142,57 @@ class Ball
         int m_movement_speed;
         int m_directionY;
         int m_directionX;
+        int m_momentum;
+        int m_hit;
     public:
         SDL_Rect renderObject;
 
-        Ball(int movement_speed)
+        Ball(int movement_speed, bool visible)
         {
             m_movement_speed = movement_speed;
             m_directionX = 1;
             m_directionY = 1;
+            m_momentum = 0;
+            m_hit = 0;
 
             renderObject.w = 10;
             renderObject.h = 10;
+
             renderObject.x = (SCREEN_WIDTH / 2) - (renderObject.w / 2);
             renderObject.y = (SCREEN_HEIGHT / 2) - (renderObject.h / 2);
         }
 
         void ChangeDirectionX() { m_directionX *= -1; }
         void ChangeDirectionY() { m_directionY *= -1; }
+        
+        void IncreaseMomentum()
+        {
+            if (m_momentum < 5 && m_hit % 5 == 0)
+            {
+                m_momentum += 1;
+            }
+        }
+
+        void Hit()
+        {
+            m_hit += 1;
+        }
+        
+        void Reset()
+        {
+            renderObject.x = (SCREEN_WIDTH / 2) - (renderObject.w / 2);
+            renderObject.y = (SCREEN_HEIGHT / 2) - (renderObject.h / 2);
+            m_momentum = 0;
+        }
 
         void Move()
         {
-            renderObject.x += m_directionX * m_movement_speed;
-            renderObject.y += m_directionY * m_movement_speed;
+            renderObject.x += (m_directionX * m_movement_speed) + (m_directionX * m_momentum);
+            renderObject.y += (m_directionY * m_movement_speed) + (m_directionY * m_momentum);
 
             if (renderObject.x <= 0 || renderObject.x >= SCREEN_WIDTH - renderObject.w)
             {
-                renderObject.x = (SCREEN_WIDTH / 2) - (renderObject.w / 2);
-                renderObject.y = (SCREEN_HEIGHT / 2) - (renderObject.h / 2);
+                Reset();
             }
         }
 
@@ -209,13 +255,13 @@ int main( int argc, char* args[] )
         -1,
         SDL_RENDERER_ACCELERATED);
 
-    PlayerPaddle *player_1 = new PlayerPaddle( "player_1", 4, 30, 30, SDLK_UP, SDLK_DOWN );
-    
-    
     // AIPaddle *player_1 = new AIPaddle( "player_1", 4, 30, 30 );
-    AIPaddle *player_2 = new AIPaddle( "player_2", 4, SCREEN_WIDTH - 30 - 10, 30 );
+    // PlayerPaddle *player_2 = new PlayerPaddle( "player_2", 4, SCREEN_WIDTH - 30 - 10, 30, SDLK_UP, SDLK_DOWN );
 
-    Ball *ball = new Ball( 4 );
+    PlayerPaddle *player_1 = new PlayerPaddle( "player_1", PADDLE_SPEED, 30, 30, SDLK_UP, SDLK_DOWN );
+    AIPaddle *player_2 = new AIPaddle( "player_2", PADDLE_SPEED, SCREEN_WIDTH - 30 - 10, 30 );
+
+    Ball *ball = new Ball( BALL_SPEED, true );
 
     Border *top_border = new Border ( BORDER_PADDING );
     Border *bottom_border = new Border ( SCREEN_HEIGHT - BORDER_PADDING - 10 );
@@ -243,6 +289,9 @@ int main( int argc, char* args[] )
         SDL_RenderFillRect( renderer, &bottom_border->renderObject );
 
         player_1->Move( event );
+        // player_2->Move( event );
+
+        // player_1->Move( ball->renderObject.y );
         player_2->Move( ball->renderObject.y );
 
         ball->Move();
@@ -273,6 +322,8 @@ int main( int argc, char* args[] )
             ball->Collides( player_2->renderObject ) )
         {
             ball->ChangeDirectionX();
+            ball->Hit();
+            ball->IncreaseMomentum();
         }
 
         if ( ball->Collides( top_border->renderObject ) || 
