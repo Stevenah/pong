@@ -255,9 +255,6 @@ int main( int argc, char* args[] )
         -1,
         SDL_RENDERER_ACCELERATED);
 
-    // AIPaddle *player_1 = new AIPaddle( "player_1", 4, 30, 30 );
-    // PlayerPaddle *player_2 = new PlayerPaddle( "player_2", 4, SCREEN_WIDTH - 30 - 10, 30, SDLK_UP, SDLK_DOWN );
-
     PlayerPaddle *player_1 = new PlayerPaddle( "player_1", PADDLE_SPEED, 30, 30, SDLK_UP, SDLK_DOWN );
     AIPaddle *player_2 = new AIPaddle( "player_2", PADDLE_SPEED, SCREEN_WIDTH - 30 - 10, 30 );
 
@@ -289,9 +286,6 @@ int main( int argc, char* args[] )
         SDL_RenderFillRect( renderer, &bottom_border->renderObject );
 
         player_1->Move( event );
-        // player_2->Move( event );
-
-        // player_1->Move( ball->renderObject.y );
         player_2->Move( ball->renderObject.y );
 
         ball->Move();
